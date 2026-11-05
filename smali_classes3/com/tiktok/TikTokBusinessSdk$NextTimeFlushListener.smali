@@ -1,0 +1,22 @@
+.class public interface abstract Lcom/tiktok/TikTokBusinessSdk$NextTimeFlushListener;
+.super Ljava/lang/Object;
+.source "r8-map-id-ac905f8c3d7b05f58eebd70753c5e4f0deca2bd5d69f747669eeb9bf3d8046fa"
+
+
+# annotations
+.annotation system Ldalvik/annotation/EnclosingClass;
+    value = Lcom/tiktok/TikTokBusinessSdk;
+.end annotation
+
+.annotation system Ldalvik/annotation/InnerClass;
+    accessFlags = 0x609
+    name = "NextTimeFlushListener"
+.end annotation
+
+
+# virtual methods
+.method public abstract thresholdLeft(II)V
+.end method
+
+.method public abstract timeLeft(I)V
+.end method

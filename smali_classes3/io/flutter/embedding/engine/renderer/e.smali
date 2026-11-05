@@ -1,0 +1,108 @@
+.class public final Lio/flutter/embedding/engine/renderer/e;
+.super Ljava/lang/Object;
+.source "r8-map-id-ac905f8c3d7b05f58eebd70753c5e4f0deca2bd5d69f747669eeb9bf3d8046fa"
+
+
+# instance fields
+.field public final a:Landroid/media/ImageReader;
+
+.field public final b:Ljava/util/ArrayDeque;
+
+.field public c:Z
+
+.field public final synthetic d:Lio/flutter/embedding/engine/renderer/FlutterRenderer$ImageReaderSurfaceProducer;
+
+
+# direct methods
+.method public constructor <init>(Lio/flutter/embedding/engine/renderer/FlutterRenderer$ImageReaderSurfaceProducer;Landroid/media/ImageReader;)V
+    .locals 1
+
+    .line 1
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+
+    .line 2
+    .line 3
+    .line 4
+    iput-object p1, p0, Lio/flutter/embedding/engine/renderer/e;->d:Lio/flutter/embedding/engine/renderer/FlutterRenderer$ImageReaderSurfaceProducer;
+
+    .line 5
+    .line 6
+    new-instance p1, Ljava/util/ArrayDeque;
+
+    .line 7
+    .line 8
+    invoke-direct {p1}, Ljava/util/ArrayDeque;-><init>()V
+
+    .line 9
+    .line 10
+    .line 11
+    iput-object p1, p0, Lio/flutter/embedding/engine/renderer/e;->b:Ljava/util/ArrayDeque;
+
+    .line 12
+    .line 13
+    const/4 p1, 0x0
+
+    .line 14
+    iput-boolean p1, p0, Lio/flutter/embedding/engine/renderer/e;->c:Z
+
+    .line 15
+    .line 16
+    iput-object p2, p0, Lio/flutter/embedding/engine/renderer/e;->a:Landroid/media/ImageReader;
+
+    .line 17
+    .line 18
+    new-instance p1, Lio/flutter/embedding/engine/renderer/d;
+
+    .line 19
+    .line 20
+    invoke-direct {p1, p0}, Lio/flutter/embedding/engine/renderer/d;-><init>(Lio/flutter/embedding/engine/renderer/e;)V
+
+    .line 21
+    .line 22
+    .line 23
+    new-instance p0, Landroid/os/Handler;
+
+    .line 24
+    .line 25
+    invoke-static {}, Landroid/os/Looper;->getMainLooper()Landroid/os/Looper;
+
+    .line 26
+    .line 27
+    .line 28
+    move-result-object v0
+
+    .line 29
+    invoke-direct {p0, v0}, Landroid/os/Handler;-><init>(Landroid/os/Looper;)V
+
+    .line 30
+    .line 31
+    .line 32
+    invoke-virtual {p2, p1, p0}, Landroid/media/ImageReader;->setOnImageAvailableListener(Landroid/media/ImageReader$OnImageAvailableListener;Landroid/os/Handler;)V
+
+    .line 33
+    .line 34
+    .line 35
+    return-void
+    .line 36
+    .line 37
+    .line 38
+    .line 39
+    .line 40
+    .line 41
+    .line 42
+    .line 43
+    .line 44
+    .line 45
+    .line 46
+    .line 47
+    .line 48
+    .line 49
+    .line 50
+    .line 51
+    .line 52
+    .line 53
+    .line 54
+    .line 55
+    .line 56
+    .line 57
+.end method

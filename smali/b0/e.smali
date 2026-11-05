@@ -1,0 +1,50 @@
+.class public final Lb0/e;
+.super Ljava/lang/Object;
+.source "r8-map-id-ac905f8c3d7b05f58eebd70753c5e4f0deca2bd5d69f747669eeb9bf3d8046fa"
+
+# interfaces
+.implements Lb0/j;
+
+
+# instance fields
+.field public final a:Lb0/d;
+
+
+# direct methods
+.method public constructor <init>(Lb0/d;)V
+    .locals 0
+
+    .line 1
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+
+    .line 2
+    .line 3
+    .line 4
+    iput-object p1, p0, Lb0/e;->a:Lb0/d;
+
+    .line 5
+    .line 6
+    return-void
+    .line 7
+    .line 8
+    .line 9
+    .line 10
+    .line 11
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+    .line 21
+    .line 22
+    .line 23
+    .line 24
+    .line 25
+    .line 26
+    .line 27
+    .line 28
+.end method

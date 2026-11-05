@@ -1,0 +1,119 @@
+.class public final Lcom/revenuecat/purchases/ui/revenuecatui/helpers/PaywallLegacyComponentInteraction$Value;
+.super Ljava/lang/Object;
+.source "r8-map-id-ac905f8c3d7b05f58eebd70753c5e4f0deca2bd5d69f747669eeb9bf3d8046fa"
+
+
+# annotations
+.annotation system Ldalvik/annotation/EnclosingClass;
+    value = Lcom/revenuecat/purchases/ui/revenuecatui/helpers/PaywallLegacyComponentInteraction;
+.end annotation
+
+.annotation system Ldalvik/annotation/InnerClass;
+    accessFlags = 0x19
+    name = "Value"
+.end annotation
+
+.annotation runtime Lkotlin/Metadata;
+    d1 = {
+        "\u0000\u0014\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0002\u0008\u0002\n\u0002\u0010\u000e\n\u0002\u0008\u0005\u0008\u00c7\u0002\u0018\u00002\u00020\u0001B\u0007\u0008\u0002\u00a2\u0006\u0002\u0010\u0002R\u000e\u0010\u0003\u001a\u00020\u0004X\u0086T\u00a2\u0006\u0002\n\u0000R\u000e\u0010\u0005\u001a\u00020\u0004X\u0086T\u00a2\u0006\u0002\n\u0000R\u000e\u0010\u0006\u001a\u00020\u0004X\u0086T\u00a2\u0006\u0002\n\u0000R\u000e\u0010\u0007\u001a\u00020\u0004X\u0086T\u00a2\u0006\u0002\n\u0000R\u000e\u0010\u0008\u001a\u00020\u0004X\u0086T\u00a2\u0006\u0002\n\u0000\u00a8\u0006\t"
+    }
+    d2 = {
+        "Lcom/revenuecat/purchases/ui/revenuecatui/helpers/PaywallLegacyComponentInteraction$Value;",
+        "",
+        "()V",
+        "IN_APP_CHECKOUT",
+        "",
+        "NAVIGATE_TO_PRIVACY_POLICY",
+        "NAVIGATE_TO_TERMS",
+        "RESTORE_PURCHASES",
+        "TOGGLE_ALL_PLANS",
+        "revenuecatui_defaultsRelease"
+    }
+    k = 0x1
+    mv = {
+        0x1,
+        0x8,
+        0x0
+    }
+    xi = 0x30
+.end annotation
+
+
+# static fields
+.field public static final $stable:I = 0x0
+
+.field public static final INSTANCE:Lcom/revenuecat/purchases/ui/revenuecatui/helpers/PaywallLegacyComponentInteraction$Value;
+
+.field public static final IN_APP_CHECKOUT:Ljava/lang/String; = "in_app_checkout"
+
+.field public static final NAVIGATE_TO_PRIVACY_POLICY:Ljava/lang/String; = "navigate_to_privacy_policy"
+
+.field public static final NAVIGATE_TO_TERMS:Ljava/lang/String; = "navigate_to_terms"
+
+.field public static final RESTORE_PURCHASES:Ljava/lang/String; = "restore_purchases"
+
+.field public static final TOGGLE_ALL_PLANS:Ljava/lang/String; = "toggle_all_plans"
+
+
+# direct methods
+.method static constructor <clinit>()V
+    .locals 1
+
+    .line 1
+    new-instance v0, Lcom/revenuecat/purchases/ui/revenuecatui/helpers/PaywallLegacyComponentInteraction$Value;
+
+    .line 2
+    .line 3
+    invoke-direct {v0}, Lcom/revenuecat/purchases/ui/revenuecatui/helpers/PaywallLegacyComponentInteraction$Value;-><init>()V
+
+    .line 4
+    .line 5
+    .line 6
+    sput-object v0, Lcom/revenuecat/purchases/ui/revenuecatui/helpers/PaywallLegacyComponentInteraction$Value;->INSTANCE:Lcom/revenuecat/purchases/ui/revenuecatui/helpers/PaywallLegacyComponentInteraction$Value;
+
+    .line 7
+    .line 8
+    return-void
+    .line 9
+    .line 10
+    .line 11
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+    .line 21
+.end method
+
+.method private constructor <init>()V
+    .locals 0
+
+    .line 1
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+
+    .line 2
+    .line 3
+    .line 4
+    return-void
+    .line 5
+    .line 6
+    .line 7
+    .line 8
+    .line 9
+    .line 10
+    .line 11
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+    .line 21
+.end method

@@ -1,0 +1,1420 @@
+.class public final Lug/a3;
+.super Lcom/google/protobuf/f0;
+.source "r8-map-id-ac905f8c3d7b05f58eebd70753c5e4f0deca2bd5d69f747669eeb9bf3d8046fa"
+
+
+# static fields
+.field public static final CURRENT_DOCUMENT_FIELD_NUMBER:I = 0x4
+
+.field private static final DEFAULT_INSTANCE:Lug/a3;
+
+.field public static final DELETE_FIELD_NUMBER:I = 0x2
+
+.field private static volatile PARSER:Lcom/google/protobuf/l1; = null
+    .annotation system Ldalvik/annotation/Signature;
+        value = {
+            "Lcom/google/protobuf/l1;"
+        }
+    .end annotation
+.end field
+
+.field public static final TRANSFORM_FIELD_NUMBER:I = 0x6
+
+.field public static final UPDATE_FIELD_NUMBER:I = 0x1
+
+.field public static final UPDATE_MASK_FIELD_NUMBER:I = 0x3
+
+.field public static final UPDATE_TRANSFORMS_FIELD_NUMBER:I = 0x7
+
+.field public static final VERIFY_FIELD_NUMBER:I = 0x5
+
+
+# instance fields
+.field private bitField0_:I
+
+.field private currentDocument_:Lug/w0;
+
+.field private operationCase_:I
+
+.field private operation_:Ljava/lang/Object;
+
+.field private updateMask_:Lug/v;
+
+.field private updateTransforms_:Lcom/google/protobuf/m0;
+    .annotation system Ldalvik/annotation/Signature;
+        value = {
+            "Lcom/google/protobuf/m0;"
+        }
+    .end annotation
+.end field
+
+
+# direct methods
+.method static constructor <clinit>()V
+    .locals 2
+
+    .line 1
+    new-instance v0, Lug/a3;
+
+    .line 2
+    .line 3
+    invoke-direct {v0}, Lug/a3;-><init>()V
+
+    .line 4
+    .line 5
+    .line 6
+    sput-object v0, Lug/a3;->DEFAULT_INSTANCE:Lug/a3;
+
+    .line 7
+    .line 8
+    const-class v1, Lug/a3;
+
+    .line 9
+    .line 10
+    invoke-static {v1, v0}, Lcom/google/protobuf/f0;->r(Ljava/lang/Class;Lcom/google/protobuf/f0;)V
+
+    .line 11
+    .line 12
+    .line 13
+    return-void
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+.end method
+
+.method public constructor <init>()V
+    .locals 1
+
+    .line 1
+    invoke-direct {p0}, Lcom/google/protobuf/f0;-><init>()V
+
+    .line 2
+    .line 3
+    .line 4
+    const/4 v0, 0x0
+
+    .line 5
+    iput v0, p0, Lug/a3;->operationCase_:I
+
+    .line 6
+    .line 7
+    sget-object v0, Lcom/google/protobuf/o1;->d:Lcom/google/protobuf/o1;
+
+    .line 8
+    .line 9
+    iput-object v0, p0, Lug/a3;->updateTransforms_:Lcom/google/protobuf/m0;
+
+    .line 10
+    .line 11
+    return-void
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+.end method
+
+.method public static M()Lug/y2;
+    .locals 1
+
+    .line 1
+    sget-object v0, Lug/a3;->DEFAULT_INSTANCE:Lug/a3;
+
+    .line 2
+    .line 3
+    invoke-virtual {v0}, Lcom/google/protobuf/f0;->g()Lcom/google/protobuf/d0;
+
+    .line 4
+    .line 5
+    .line 6
+    move-result-object v0
+
+    .line 7
+    check-cast v0, Lug/y2;
+
+    .line 8
+    .line 9
+    return-object v0
+    .line 10
+    .line 11
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+.end method
+
+.method public static N(Lug/a3;)Lug/y2;
+    .locals 1
+
+    .line 1
+    sget-object v0, Lug/a3;->DEFAULT_INSTANCE:Lug/a3;
+
+    .line 2
+    .line 3
+    invoke-virtual {v0}, Lcom/google/protobuf/f0;->g()Lcom/google/protobuf/d0;
+
+    .line 4
+    .line 5
+    .line 6
+    move-result-object v0
+
+    .line 7
+    invoke-virtual {v0, p0}, Lcom/google/protobuf/d0;->e(Lcom/google/protobuf/f0;)V
+
+    .line 8
+    .line 9
+    .line 10
+    check-cast v0, Lug/y2;
+
+    .line 11
+    .line 12
+    return-object v0
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+    .line 21
+    .line 22
+    .line 23
+    .line 24
+    .line 25
+    .line 26
+    .line 27
+    .line 28
+.end method
+
+.method public static O([B)Lug/a3;
+    .locals 1
+
+    .line 1
+    sget-object v0, Lug/a3;->DEFAULT_INSTANCE:Lug/a3;
+
+    .line 2
+    .line 3
+    invoke-static {v0, p0}, Lcom/google/protobuf/f0;->p(Lcom/google/protobuf/f0;[B)Lcom/google/protobuf/f0;
+
+    .line 4
+    .line 5
+    .line 6
+    move-result-object p0
+
+    .line 7
+    check-cast p0, Lug/a3;
+
+    .line 8
+    .line 9
+    return-object p0
+    .line 10
+    .line 11
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+    .line 21
+    .line 22
+    .line 23
+    .line 24
+    .line 25
+    .line 26
+    .line 27
+    .line 28
+.end method
+
+.method public static u(Lug/a3;Lug/v;)V
+    .locals 0
+
+    .line 1
+    invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+
+    .line 2
+    .line 3
+    .line 4
+    iput-object p1, p0, Lug/a3;->updateMask_:Lug/v;
+
+    .line 5
+    .line 6
+    iget p1, p0, Lug/a3;->bitField0_:I
+
+    .line 7
+    .line 8
+    or-int/lit8 p1, p1, 0x1
+
+    .line 9
+    .line 10
+    iput p1, p0, Lug/a3;->bitField0_:I
+
+    .line 11
+    .line 12
+    return-void
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+    .line 21
+    .line 22
+    .line 23
+    .line 24
+    .line 25
+    .line 26
+    .line 27
+    .line 28
+    .line 29
+    .line 30
+    .line 31
+    .line 32
+    .line 33
+    .line 34
+    .line 35
+    .line 36
+    .line 37
+    .line 38
+    .line 39
+    .line 40
+    .line 41
+    .line 42
+    .line 43
+    .line 44
+.end method
+
+.method public static v(Lug/a3;Lug/z;)V
+    .locals 2
+
+    .line 1
+    invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+
+    .line 2
+    .line 3
+    .line 4
+    invoke-virtual {p1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+
+    .line 5
+    .line 6
+    .line 7
+    iget-object v0, p0, Lug/a3;->updateTransforms_:Lcom/google/protobuf/m0;
+
+    .line 8
+    .line 9
+    move-object v1, v0
+
+    .line 10
+    check-cast v1, Lcom/google/protobuf/b;
+
+    .line 11
+    .line 12
+    iget-boolean v1, v1, Lcom/google/protobuf/b;->a:Z
+
+    .line 13
+    .line 14
+    if-nez v1, :cond_0
+
+    .line 15
+    .line 16
+    invoke-static {v0}, Lcom/google/protobuf/f0;->n(Lcom/google/protobuf/m0;)Lcom/google/protobuf/m0;
+
+    .line 17
+    .line 18
+    .line 19
+    move-result-object v0
+
+    .line 20
+    iput-object v0, p0, Lug/a3;->updateTransforms_:Lcom/google/protobuf/m0;
+
+    .line 21
+    .line 22
+    :cond_0
+    iget-object p0, p0, Lug/a3;->updateTransforms_:Lcom/google/protobuf/m0;
+
+    .line 23
+    .line 24
+    invoke-interface {p0, p1}, Ljava/util/List;->add(Ljava/lang/Object;)Z
+
+    .line 25
+    .line 26
+    .line 27
+    return-void
+    .line 28
+    .line 29
+    .line 30
+    .line 31
+    .line 32
+    .line 33
+    .line 34
+    .line 35
+    .line 36
+    .line 37
+    .line 38
+    .line 39
+    .line 40
+    .line 41
+    .line 42
+    .line 43
+    .line 44
+.end method
+
+.method public static w(Lug/a3;Lug/r;)V
+    .locals 0
+
+    .line 1
+    invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+
+    .line 2
+    .line 3
+    .line 4
+    iput-object p1, p0, Lug/a3;->operation_:Ljava/lang/Object;
+
+    .line 5
+    .line 6
+    const/4 p1, 0x1
+
+    .line 7
+    iput p1, p0, Lug/a3;->operationCase_:I
+
+    .line 8
+    .line 9
+    return-void
+    .line 10
+    .line 11
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+    .line 21
+    .line 22
+    .line 23
+    .line 24
+    .line 25
+    .line 26
+    .line 27
+    .line 28
+    .line 29
+    .line 30
+    .line 31
+    .line 32
+    .line 33
+    .line 34
+    .line 35
+    .line 36
+    .line 37
+    .line 38
+    .line 39
+    .line 40
+    .line 41
+    .line 42
+    .line 43
+    .line 44
+.end method
+
+.method public static x(Lug/a3;Lug/w0;)V
+    .locals 0
+
+    .line 1
+    invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+
+    .line 2
+    .line 3
+    .line 4
+    iput-object p1, p0, Lug/a3;->currentDocument_:Lug/w0;
+
+    .line 5
+    .line 6
+    iget p1, p0, Lug/a3;->bitField0_:I
+
+    .line 7
+    .line 8
+    or-int/lit8 p1, p1, 0x2
+
+    .line 9
+    .line 10
+    iput p1, p0, Lug/a3;->bitField0_:I
+
+    .line 11
+    .line 12
+    return-void
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+    .line 21
+    .line 22
+    .line 23
+    .line 24
+    .line 25
+    .line 26
+    .line 27
+    .line 28
+    .line 29
+    .line 30
+    .line 31
+    .line 32
+    .line 33
+    .line 34
+    .line 35
+    .line 36
+    .line 37
+    .line 38
+    .line 39
+    .line 40
+    .line 41
+    .line 42
+    .line 43
+    .line 44
+.end method
+
+.method public static y(Lug/a3;Ljava/lang/String;)V
+    .locals 1
+
+    .line 1
+    invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+
+    .line 2
+    .line 3
+    .line 4
+    const/4 v0, 0x2
+
+    .line 5
+    iput v0, p0, Lug/a3;->operationCase_:I
+
+    .line 6
+    .line 7
+    iput-object p1, p0, Lug/a3;->operation_:Ljava/lang/Object;
+
+    .line 8
+    .line 9
+    return-void
+    .line 10
+    .line 11
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+    .line 21
+    .line 22
+    .line 23
+    .line 24
+    .line 25
+    .line 26
+    .line 27
+    .line 28
+    .line 29
+    .line 30
+    .line 31
+    .line 32
+    .line 33
+    .line 34
+    .line 35
+    .line 36
+    .line 37
+    .line 38
+    .line 39
+    .line 40
+    .line 41
+    .line 42
+    .line 43
+    .line 44
+.end method
+
+.method public static z(Lug/a3;Ljava/lang/String;)V
+    .locals 1
+
+    .line 1
+    invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+
+    .line 2
+    .line 3
+    .line 4
+    const/4 v0, 0x5
+
+    .line 5
+    iput v0, p0, Lug/a3;->operationCase_:I
+
+    .line 6
+    .line 7
+    iput-object p1, p0, Lug/a3;->operation_:Ljava/lang/Object;
+
+    .line 8
+    .line 9
+    return-void
+    .line 10
+    .line 11
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+    .line 21
+    .line 22
+    .line 23
+    .line 24
+    .line 25
+    .line 26
+    .line 27
+    .line 28
+    .line 29
+    .line 30
+    .line 31
+    .line 32
+    .line 33
+    .line 34
+    .line 35
+    .line 36
+    .line 37
+    .line 38
+    .line 39
+    .line 40
+    .line 41
+    .line 42
+    .line 43
+    .line 44
+.end method
+
+
+# virtual methods
+.method public final A()Lug/w0;
+    .locals 0
+
+    .line 1
+    iget-object p0, p0, Lug/a3;->currentDocument_:Lug/w0;
+
+    .line 2
+    .line 3
+    if-nez p0, :cond_0
+
+    .line 4
+    .line 5
+    invoke-static {}, Lug/w0;->x()Lug/w0;
+
+    .line 6
+    .line 7
+    .line 8
+    move-result-object p0
+
+    .line 9
+    :cond_0
+    return-object p0
+    .line 10
+    .line 11
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+.end method
+
+.method public final B()Ljava/lang/String;
+    .locals 2
+
+    .line 1
+    iget v0, p0, Lug/a3;->operationCase_:I
+
+    .line 2
+    .line 3
+    const/4 v1, 0x2
+
+    .line 4
+    if-ne v0, v1, :cond_0
+
+    .line 5
+    .line 6
+    iget-object p0, p0, Lug/a3;->operation_:Ljava/lang/Object;
+
+    .line 7
+    .line 8
+    check-cast p0, Ljava/lang/String;
+
+    .line 9
+    .line 10
+    return-object p0
+
+    .line 11
+    :cond_0
+    const-string p0, ""
+
+    .line 12
+    .line 13
+    return-object p0
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+.end method
+
+.method public final C()Lug/z2;
+    .locals 1
+
+    .line 1
+    iget p0, p0, Lug/a3;->operationCase_:I
+
+    .line 2
+    .line 3
+    if-eqz p0, :cond_4
+
+    .line 4
+    .line 5
+    const/4 v0, 0x1
+
+    .line 6
+    if-eq p0, v0, :cond_3
+
+    .line 7
+    .line 8
+    const/4 v0, 0x2
+
+    .line 9
+    if-eq p0, v0, :cond_2
+
+    .line 10
+    .line 11
+    const/4 v0, 0x5
+
+    .line 12
+    if-eq p0, v0, :cond_1
+
+    .line 13
+    .line 14
+    const/4 v0, 0x6
+
+    .line 15
+    if-eq p0, v0, :cond_0
+
+    .line 16
+    .line 17
+    const/4 p0, 0x0
+
+    .line 18
+    return-object p0
+
+    .line 19
+    :cond_0
+    sget-object p0, Lug/z2;->d:Lug/z2;
+
+    .line 20
+    .line 21
+    return-object p0
+
+    .line 22
+    :cond_1
+    sget-object p0, Lug/z2;->c:Lug/z2;
+
+    .line 23
+    .line 24
+    return-object p0
+
+    .line 25
+    :cond_2
+    sget-object p0, Lug/z2;->b:Lug/z2;
+
+    .line 26
+    .line 27
+    return-object p0
+
+    .line 28
+    :cond_3
+    sget-object p0, Lug/z2;->a:Lug/z2;
+
+    .line 29
+    .line 30
+    return-object p0
+
+    .line 31
+    :cond_4
+    sget-object p0, Lug/z2;->e:Lug/z2;
+
+    .line 32
+    .line 33
+    return-object p0
+    .line 34
+    .line 35
+    .line 36
+    .line 37
+    .line 38
+    .line 39
+    .line 40
+    .line 41
+    .line 42
+    .line 43
+    .line 44
+    .line 45
+    .line 46
+    .line 47
+    .line 48
+    .line 49
+    .line 50
+    .line 51
+    .line 52
+    .line 53
+    .line 54
+    .line 55
+    .line 56
+    .line 57
+    .line 58
+    .line 59
+.end method
+
+.method public final D()Lug/a0;
+    .locals 2
+
+    .line 1
+    iget v0, p0, Lug/a3;->operationCase_:I
+
+    .line 2
+    .line 3
+    const/4 v1, 0x6
+
+    .line 4
+    if-ne v0, v1, :cond_0
+
+    .line 5
+    .line 6
+    iget-object p0, p0, Lug/a3;->operation_:Ljava/lang/Object;
+
+    .line 7
+    .line 8
+    check-cast p0, Lug/a0;
+
+    .line 9
+    .line 10
+    return-object p0
+
+    .line 11
+    :cond_0
+    invoke-static {}, Lug/a0;->u()Lug/a0;
+
+    .line 12
+    .line 13
+    .line 14
+    move-result-object p0
+
+    .line 15
+    return-object p0
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+.end method
+
+.method public final E()Lug/r;
+    .locals 2
+
+    .line 1
+    iget v0, p0, Lug/a3;->operationCase_:I
+
+    .line 2
+    .line 3
+    const/4 v1, 0x1
+
+    .line 4
+    if-ne v0, v1, :cond_0
+
+    .line 5
+    .line 6
+    iget-object p0, p0, Lug/a3;->operation_:Ljava/lang/Object;
+
+    .line 7
+    .line 8
+    check-cast p0, Lug/r;
+
+    .line 9
+    .line 10
+    return-object p0
+
+    .line 11
+    :cond_0
+    invoke-static {}, Lug/r;->y()Lug/r;
+
+    .line 12
+    .line 13
+    .line 14
+    move-result-object p0
+
+    .line 15
+    return-object p0
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+.end method
+
+.method public final F()Lug/v;
+    .locals 0
+
+    .line 1
+    iget-object p0, p0, Lug/a3;->updateMask_:Lug/v;
+
+    .line 2
+    .line 3
+    if-nez p0, :cond_0
+
+    .line 4
+    .line 5
+    invoke-static {}, Lug/v;->v()Lug/v;
+
+    .line 6
+    .line 7
+    .line 8
+    move-result-object p0
+
+    .line 9
+    :cond_0
+    return-object p0
+    .line 10
+    .line 11
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+.end method
+
+.method public final G()Lcom/google/protobuf/m0;
+    .locals 0
+
+    .line 1
+    iget-object p0, p0, Lug/a3;->updateTransforms_:Lcom/google/protobuf/m0;
+
+    .line 2
+    .line 3
+    return-object p0
+    .line 4
+    .line 5
+    .line 6
+    .line 7
+    .line 8
+    .line 9
+    .line 10
+    .line 11
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+.end method
+
+.method public final H()Ljava/lang/String;
+    .locals 2
+
+    .line 1
+    iget v0, p0, Lug/a3;->operationCase_:I
+
+    .line 2
+    .line 3
+    const/4 v1, 0x5
+
+    .line 4
+    if-ne v0, v1, :cond_0
+
+    .line 5
+    .line 6
+    iget-object p0, p0, Lug/a3;->operation_:Ljava/lang/Object;
+
+    .line 7
+    .line 8
+    check-cast p0, Ljava/lang/String;
+
+    .line 9
+    .line 10
+    return-object p0
+
+    .line 11
+    :cond_0
+    const-string p0, ""
+
+    .line 12
+    .line 13
+    return-object p0
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+.end method
+
+.method public final I()Z
+    .locals 0
+
+    .line 1
+    iget p0, p0, Lug/a3;->bitField0_:I
+
+    .line 2
+    .line 3
+    and-int/lit8 p0, p0, 0x2
+
+    .line 4
+    .line 5
+    if-eqz p0, :cond_0
+
+    .line 6
+    .line 7
+    const/4 p0, 0x1
+
+    .line 8
+    return p0
+
+    .line 9
+    :cond_0
+    const/4 p0, 0x0
+
+    .line 10
+    return p0
+    .line 11
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+.end method
+
+.method public final J()Z
+    .locals 1
+
+    .line 1
+    iget p0, p0, Lug/a3;->operationCase_:I
+
+    .line 2
+    .line 3
+    const/4 v0, 0x6
+
+    .line 4
+    if-ne p0, v0, :cond_0
+
+    .line 5
+    .line 6
+    const/4 p0, 0x1
+
+    .line 7
+    return p0
+
+    .line 8
+    :cond_0
+    const/4 p0, 0x0
+
+    .line 9
+    return p0
+    .line 10
+    .line 11
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+.end method
+
+.method public final K()Z
+    .locals 1
+
+    .line 1
+    iget p0, p0, Lug/a3;->operationCase_:I
+
+    .line 2
+    .line 3
+    const/4 v0, 0x1
+
+    .line 4
+    if-ne p0, v0, :cond_0
+
+    .line 5
+    .line 6
+    return v0
+
+    .line 7
+    :cond_0
+    const/4 p0, 0x0
+
+    .line 8
+    return p0
+    .line 9
+    .line 10
+    .line 11
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+.end method
+
+.method public final L()Z
+    .locals 1
+
+    .line 1
+    iget p0, p0, Lug/a3;->bitField0_:I
+
+    .line 2
+    .line 3
+    const/4 v0, 0x1
+
+    .line 4
+    and-int/2addr p0, v0
+
+    .line 5
+    if-eqz p0, :cond_0
+
+    .line 6
+    .line 7
+    return v0
+
+    .line 8
+    :cond_0
+    const/4 p0, 0x0
+
+    .line 9
+    return p0
+    .line 10
+    .line 11
+    .line 12
+    .line 13
+    .line 14
+    .line 15
+    .line 16
+    .line 17
+    .line 18
+    .line 19
+    .line 20
+.end method
+
+.method public final h(I)Ljava/lang/Object;
+    .locals 9
+
+    .line 1
+    invoke-static {p1}, Lw/h;->e(I)I
+
+    .line 2
+    .line 3
+    .line 4
+    move-result p0
+
+    .line 5
+    packed-switch p0, :pswitch_data_0
+
+    .line 6
+    .line 7
+    .line 8
+    invoke-static {}, Lcom/revenuecat/purchases/ui/revenuecatui/components/properties/a;->j()V
+
+    .line 9
+    .line 10
+    .line 11
+    const/4 p0, 0x0
+
+    .line 12
+    return-object p0
+
+    .line 13
+    :pswitch_0
+    sget-object p0, Lug/a3;->PARSER:Lcom/google/protobuf/l1;
+
+    .line 14
+    .line 15
+    if-nez p0, :cond_1
+
+    .line 16
+    .line 17
+    const-class p1, Lug/a3;
+
+    .line 18
+    .line 19
+    monitor-enter p1
+
+    .line 20
+    :try_start_0
+    sget-object p0, Lug/a3;->PARSER:Lcom/google/protobuf/l1;
+
+    .line 21
+    .line 22
+    if-nez p0, :cond_0
+
+    .line 23
+    .line 24
+    new-instance p0, Lcom/google/protobuf/e0;
+
+    .line 25
+    .line 26
+    sget-object v0, Lug/a3;->DEFAULT_INSTANCE:Lug/a3;
+
+    .line 27
+    .line 28
+    invoke-direct {p0, v0}, Lcom/google/protobuf/e0;-><init>(Lcom/google/protobuf/f0;)V
+
+    .line 29
+    .line 30
+    .line 31
+    sput-object p0, Lug/a3;->PARSER:Lcom/google/protobuf/l1;
+
+    .line 32
+    .line 33
+    goto :goto_0
+
+    .line 34
+    :catchall_0
+    move-exception v0
+
+    .line 35
+    move-object p0, v0
+
+    .line 36
+    goto :goto_1
+
+    .line 37
+    :cond_0
+    :goto_0
+    monitor-exit p1
+
+    .line 38
+    return-object p0
+
+    .line 39
+    :goto_1
+    monitor-exit p1
+    :try_end_0
+    .catchall {:try_start_0 .. :try_end_0} :catchall_0
+
+    .line 40
+    throw p0
+
+    .line 41
+    :cond_1
+    return-object p0
+
+    .line 42
+    :pswitch_1
+    sget-object p0, Lug/a3;->DEFAULT_INSTANCE:Lug/a3;
+
+    .line 43
+    .line 44
+    return-object p0
+
+    .line 45
+    :pswitch_2
+    new-instance p0, Lug/y2;
+
+    .line 46
+    .line 47
+    sget-object p1, Lug/a3;->DEFAULT_INSTANCE:Lug/a3;
+
+    .line 48
+    .line 49
+    invoke-direct {p0, p1}, Lcom/google/protobuf/d0;-><init>(Lcom/google/protobuf/f0;)V
+
+    .line 50
+    .line 51
+    .line 52
+    return-object p0
+
+    .line 53
+    :pswitch_3
+    new-instance p0, Lug/a3;
+
+    .line 54
+    .line 55
+    invoke-direct {p0}, Lug/a3;-><init>()V
+
+    .line 56
+    .line 57
+    .line 58
+    return-object p0
+
+    .line 59
+    :pswitch_4
+    const-string v0, "operation_"
+
+    .line 60
+    .line 61
+    const-string v1, "operationCase_"
+
+    .line 62
+    .line 63
+    const-string v2, "bitField0_"
+
+    .line 64
+    .line 65
+    const-class v3, Lug/r;
+
+    .line 66
+    .line 67
+    const-string v4, "updateMask_"
+
+    .line 68
+    .line 69
+    const-string v5, "currentDocument_"
+
+    .line 70
+    .line 71
+    const-class v6, Lug/a0;
+
+    .line 72
+    .line 73
+    const-string v7, "updateTransforms_"
+
+    .line 74
+    .line 75
+    const-class v8, Lug/z;
+
+    .line 76
+    .line 77
+    filled-new-array/range {v0 .. v8}, [Ljava/lang/Object;
+
+    .line 78
+    .line 79
+    .line 80
+    move-result-object p0
+
+    .line 81
+    const-string p1, "\u0000\u0007\u0001\u0001\u0001\u0007\u0007\u0000\u0001\u0000\u0001<\u0000\u0002\u023b\u0000\u0003\u1009\u0000\u0004\u1009\u0001\u0005\u023b\u0000\u0006<\u0000\u0007\u001b"
+
+    .line 82
+    .line 83
+    sget-object v0, Lug/a3;->DEFAULT_INSTANCE:Lug/a3;
+
+    .line 84
+    .line 85
+    new-instance v1, Lcom/google/protobuf/p1;
+
+    .line 86
+    .line 87
+    invoke-direct {v1, v0, p1, p0}, Lcom/google/protobuf/p1;-><init>(Lcom/google/protobuf/a;Ljava/lang/String;[Ljava/lang/Object;)V
+
+    .line 88
+    .line 89
+    .line 90
+    return-object v1
+
+    .line 91
+    :pswitch_5
+    const/4 p0, 0x0
+
+    .line 92
+    return-object p0
+
+    .line 93
+    :pswitch_6
+    const/4 p0, 0x1
+
+    .line 94
+    invoke-static {p0}, Ljava/lang/Byte;->valueOf(B)Ljava/lang/Byte;
+
+    .line 95
+    .line 96
+    .line 97
+    move-result-object p0
+
+    .line 98
+    return-object p0
+
+    .line 99
+    :pswitch_data_0
+    .packed-switch 0x0
+        :pswitch_6
+        :pswitch_5
+        :pswitch_4
+        :pswitch_3
+        :pswitch_2
+        :pswitch_1
+        :pswitch_0
+    .end packed-switch
+    .line 100
+    .line 101
+    .line 102
+    .line 103
+    .line 104
+    .line 105
+    .line 106
+    .line 107
+    .line 108
+    .line 109
+    .line 110
+    .line 111
+    .line 112
+    .line 113
+    .line 114
+    .line 115
+    .line 116
+    .line 117
+    .line 118
+    .line 119
+    .line 120
+    .line 121
+    .line 122
+    .line 123
+    .line 124
+    .line 125
+    .line 126
+    .line 127
+    .line 128
+    .line 129
+    .line 130
+    .line 131
+    .line 132
+.end method
