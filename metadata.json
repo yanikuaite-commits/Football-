@@ -1,0 +1,6 @@
+{
+  "name": "Ultimate Football Life",
+  "description": "Simulador de carreira de futebol e vida pessoal em 3D: partidas jogáveis em tempo real, relacionamentos, contratos, casas, carros e Footgram.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
