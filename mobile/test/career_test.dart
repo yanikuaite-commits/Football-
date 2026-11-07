@@ -57,4 +57,40 @@ void main() {
       expect(career.nextOpponent, isNot(club));
     }
   });
+
+  test('decision moments are generated with possible actions', () {
+    final moment = MatchMoment.generate(
+      minute: 18,
+      homeScore: 1,
+      awayScore: 0,
+      energy: 80,
+      overall: 74,
+    );
+
+    expect(moment.title.isNotEmpty, isTrue);
+    expect(moment.actions.isNotEmpty, isTrue);
+  });
+
+  test('resolving a moment yields a meaningful result', () {
+    final outcome = resolveMomentOutcome(
+      moment: const MatchMoment(
+        title: 'Ataque rápido',
+        description: 'A partida abre-se.',
+        minute: 18,
+        actions: [MatchAction.pass, MatchAction.shoot],
+        skill: 'Finalizacao',
+      ),
+      action: MatchAction.shoot,
+      attributes: {
+        'Finalizacao': 74,
+        'Drible': 70,
+        'Passe': 68,
+        'Defesa': 52,
+      },
+      stamina: 72,
+    );
+
+    expect(outcome.message.isNotEmpty, isTrue);
+    expect(outcome.ratingDelta, isA<double>());
+  });
 }

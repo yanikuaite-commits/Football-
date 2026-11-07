@@ -238,6 +238,158 @@ class MatchResult {
   final double playerRating;
 }
 
+enum MatchAction { pass, dribble, shoot, press, tackle }
+
+class MatchMoment {
+  const MatchMoment({
+    required this.title,
+    required this.description,
+    required this.minute,
+    required this.actions,
+    required this.skill,
+  });
+
+  final String title;
+  final String description;
+  final int minute;
+  final List<MatchAction> actions;
+  final String skill;
+
+  static MatchMoment generate({
+    required int minute,
+    required int homeScore,
+    required int awayScore,
+    required int energy,
+    required int overall,
+  }) {
+    final byMinute = minute + homeScore * 3 + awayScore * 2;
+    switch (byMinute % 5) {
+      case 0:
+        return const MatchMoment(
+          title: 'Ataque rápido',
+          description: 'O contra-ataque abre espaço junto ao corredor esquerdo.',
+          minute: 0,
+          actions: [MatchAction.pass, MatchAction.dribble, MatchAction.shoot],
+          skill: 'Finalizacao',
+        );
+      case 1:
+        return const MatchMoment(
+          title: 'Pressão alta',
+          description: 'A equipa adversária está a pressionar alto e a bola está em risco.',
+          minute: 0,
+          actions: [MatchAction.press, MatchAction.tackle, MatchAction.pass],
+          skill: 'Defesa',
+        );
+      case 2:
+        return const MatchMoment(
+          title: 'Rotação ofensiva',
+          description: 'Há espaço para um drible rápido antes do último passe.',
+          minute: 0,
+          actions: [MatchAction.dribble, MatchAction.pass, MatchAction.shoot],
+          skill: 'Drible',
+        );
+      case 3:
+        return const MatchMoment(
+          title: 'Bola parada',
+          description: 'A equipa preparou um canto e o teu gesto define a jogada.',
+          minute: 0,
+          actions: [MatchAction.pass, MatchAction.shoot, MatchAction.press],
+          skill: 'Passe',
+        );
+      default:
+        return const MatchMoment(
+          title: 'Jogo aberto',
+          description: 'A defesa faz um erro e o próximo passe pode criar a chance.',
+          minute: 0,
+          actions: [MatchAction.dribble, MatchAction.pass, MatchAction.shoot],
+          skill: 'Ritmo',
+        );
+    }
+  }
+}
+
+class MatchMomentOutcome {
+  const MatchMomentOutcome({
+    required this.success,
+    required this.message,
+    required this.playerGoals,
+    required this.opponentGoals,
+    required this.ratingDelta,
+  });
+
+  final bool success;
+  final String message;
+  final int playerGoals;
+  final int opponentGoals;
+  final double ratingDelta;
+}
+
+MatchMomentOutcome resolveMomentOutcome({
+  required MatchMoment moment,
+  required MatchAction action,
+  required Map<String, int> attributes,
+  required double stamina,
+}) {
+  final generated = (attributes['Finalizacao'] ?? 64) +
+      (attributes['Drible'] ?? 66) +
+      (attributes['Passe'] ?? 62) +
+      (attributes['Defesa'] ?? 48);
+  final baseChance = (generated / 4) / 100;
+  final staminaBonus = stamina / 100 * 0.12;
+  final actionBonus = switch (action) {
+    MatchAction.shoot => 0.12,
+    MatchAction.dribble => 0.10,
+    MatchAction.pass => 0.09,
+    MatchAction.press => 0.07,
+    MatchAction.tackle => 0.08,
+  };
+  final probability = (baseChance + actionBonus + staminaBonus).clamp(0.18, 0.9);
+  final success = Random().nextDouble() < probability;
+
+  switch (action) {
+    case MatchAction.shoot:
+      return MatchMomentOutcome(
+        success: success,
+        message: success ? 'Golo! A decisão foi certeira.' : 'Remate fora ou defendido.',
+        playerGoals: success ? 1 : 0,
+        opponentGoals: 0,
+        ratingDelta: success ? 0.7 : -0.2,
+      );
+    case MatchAction.dribble:
+      return MatchMomentOutcome(
+        success: success,
+        message: success ? 'Drible certeiro e avanço.' : 'Perdeste a posse na zona de pressão.',
+        playerGoals: 0,
+        opponentGoals: 0,
+        ratingDelta: success ? 0.35 : -0.1,
+      );
+    case MatchAction.pass:
+      return MatchMomentOutcome(
+        success: success,
+        message: success ? 'Passe preciso e criação de perigo.' : 'Passe falhado, contra-ataque do adversário.',
+        playerGoals: success ? 0 : 0,
+        opponentGoals: success ? 0 : 0,
+        ratingDelta: success ? 0.25 : -0.15,
+      );
+    case MatchAction.press:
+      return MatchMomentOutcome(
+        success: success,
+        message: success ? 'Pressão bem feita, roubaste a bola.' : 'Perdeste a posição e o adversário ganhou espaço.',
+        playerGoals: 0,
+        opponentGoals: 0,
+        ratingDelta: success ? 0.25 : -0.08,
+      );
+    case MatchAction.tackle:
+      return MatchMomentOutcome(
+        success: success,
+        message: success ? 'Desarme limpo e recuperação imediata.' : 'O adversário escapou do teu desafio.',
+        playerGoals: 0,
+        opponentGoals: 0,
+        ratingDelta: success ? 0.2 : -0.12,
+      );
+  }
+}
+
 MatchResult simulateResult(Random random, int goalsScored) {
   final playerGoals = goalsScored + (random.nextDouble() < 0.2 ? 1 : 0);
   return MatchResult(

@@ -6,6 +6,61 @@ import 'package:flutter/material.dart';
 import 'career.dart';
 import 'theme.dart';
 
+class MatchMomentPrompt extends StatelessWidget {
+  const MatchMomentPrompt({
+    required this.moment,
+    required this.onAction,
+    super.key,
+  });
+
+  final MatchMoment moment;
+  final ValueChanged<MatchAction> onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF101A16).withValues(alpha: .95),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: lime.withValues(alpha: .5)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(moment.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
+          Text(moment.description, style: const TextStyle(color: Colors.white70, height: 1.5)),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: moment.actions.map((action) {
+              final label = switch (action) {
+                MatchAction.pass => 'PASSE',
+                MatchAction.dribble => 'DRIBLE',
+                MatchAction.shoot => 'REMATE',
+                MatchAction.press => 'PRESSIONA',
+                MatchAction.tackle => 'DESARME',
+              };
+              return ElevatedButton(
+                onPressed: () => onAction(action),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: action == MatchAction.shoot ? amber : const Color(0xFF1A2D26),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+                child: Text(label),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class MatchScreen extends StatefulWidget {
   const MatchScreen({required this.career, required this.onFinish, super.key});
 
@@ -36,6 +91,8 @@ class _MatchScreenState extends State<MatchScreen> {
   double shotCharge = 0;
   bool paused = false;
   bool finished = false;
+  MatchMoment? activeMoment;
+  int lastDecisionMinute = -1;
   Offset player = const Offset(.5, .69);
   Offset ball = const Offset(.5, .675);
   Offset moveVector = Offset.zero;
@@ -87,6 +144,28 @@ class _MatchScreenState extends State<MatchScreen> {
         rating = min(9.8, rating + .01).toDouble();
       }
       lastMinute = minute;
+
+      if (activeMoment == null && minute > lastDecisionMinute && (minute - lastDecisionMinute) >= 7) {
+        final chance = 0.7 + (minute / 90) * 0.2;
+        if (random.nextDouble() < chance) {
+          final matchMoment = MatchMoment.generate(
+            minute: minute,
+            homeScore: homeScore,
+            awayScore: awayScore,
+            energy: widget.career.energy,
+            overall: widget.career.overall,
+          );
+          activeMoment = MatchMoment(
+            title: matchMoment.title,
+            description: matchMoment.description,
+            minute: minute,
+            actions: matchMoment.actions,
+            skill: matchMoment.skill,
+          );
+          paused = true;
+          lastDecisionMinute = minute;
+        }
+      }
     });
     if (minute >= 90) _finishMatch();
   }
@@ -136,8 +215,8 @@ class _MatchScreenState extends State<MatchScreen> {
       }
       final rangeBonus = max(0.0, .42 - player.dy) * .68;
       final finishing = (widget.career.attributes['Finalizacao'] ?? 64) / 300;
-        final overchargePenalty = max(0.0, charge - .82) * .45;
-        final chance = (.06 + rangeBonus + finishing + .10 + charge * .16 - overchargePenalty)
+      final overchargePenalty = max(0.0, charge - .82) * .45;
+      final chance = (.06 + rangeBonus + finishing + .10 + charge * .16 - overchargePenalty)
           .clamp(.08, .78)
           .toDouble();
       if (random.nextDouble() < chance) {
@@ -151,6 +230,53 @@ class _MatchScreenState extends State<MatchScreen> {
         rating = min(10.0, rating + .12).toDouble();
       }
     });
+  }
+
+  void _resolveMoment(MatchAction action) {
+    if (activeMoment == null) return;
+    final outcome = resolveMomentOutcome(
+      moment: activeMoment!,
+      action: action,
+      attributes: widget.career.attributes,
+      stamina: stamina,
+    );
+
+    setState(() {
+      activeMoment = null;
+      paused = false;
+      rating = (rating + outcome.ratingDelta).clamp(4.0, 10.0).toDouble();
+    });
+
+    if (outcome.success) {
+      if (action == MatchAction.shoot) {
+        setState(() {
+          homeScore += outcome.playerGoals;
+          goals += outcome.playerGoals;
+          hasBall = true;
+          _resetKickoff();
+        });
+      } else if (action == MatchAction.press || action == MatchAction.tackle) {
+        setState(() {
+          hasBall = true;
+          ball = Offset(player.dx, player.dy - .026);
+        });
+      } else if (action == MatchAction.pass) {
+        setState(() {
+          passes++;
+        });
+      } else if (action == MatchAction.dribble) {
+        setState(() {
+          rating = min(10.0, rating + .25).toDouble();
+        });
+      }
+    } else {
+      if (action == MatchAction.pass || action == MatchAction.dribble) {
+        setState(() {
+          hasBall = false;
+          ball = Offset(.5 + (random.nextDouble() - .5) * .22, .13);
+        });
+      }
+    }
   }
 
   void _pass() {
@@ -297,6 +423,16 @@ class _MatchScreenState extends State<MatchScreen> {
                               decoration: BoxDecoration(color: ink.withValues(alpha: .82), borderRadius: BorderRadius.circular(20)),
                               child: Text('MINUTO $minute', style: const TextStyle(color: lime, fontWeight: FontWeight.w800, fontSize: 11)),
                             ),
+                          ),
+                        ),
+                      if (activeMoment != null)
+                        Positioned(
+                          left: 18,
+                          right: 18,
+                          bottom: 120,
+                          child: MatchMomentPrompt(
+                            moment: activeMoment!,
+                            onAction: _resolveMoment,
                           ),
                         ),
                       Positioned(
