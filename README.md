@@ -8,6 +8,16 @@ This contains everything you need to run your app locally.
 
 View your app in AI Studio: https://ai.studio/apps/9c869c13-8d08-4725-a5ad-6891dd647e67
 
+## Android (Flutter)
+
+The mobile adaptation of Ultimate Football Life is in [mobile/](mobile/README.md). It requires Flutter 3.27 or newer and an Android SDK.
+
+```sh
+cd mobile
+flutter pub get
+flutter run
+```
+
 ## Run Locally
 
 **Prerequisites:**  Node.js
