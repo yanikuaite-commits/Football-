@@ -14,6 +14,7 @@ export default defineConfig(() => {
     server: {
       // HMR must remain disabled on Freebuff (preview reflects file state directly).
       hmr: false,
+      allowedHosts: ['.all-hands.dev', 'localhost'],
     },
   };
 });

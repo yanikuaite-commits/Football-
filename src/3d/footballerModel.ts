@@ -47,12 +47,82 @@ interface BaseModel {
 
 export type GaitState = 'Idle' | 'Walking' | 'Running';
 
+/**
+ * Poses de ação procedurais. Os clips de locomoção do jogo de origem
+ * (Walking/Running) cobrem o andar, mas não gestos como rematar, desarmar
+ * ou festejar. Estas poses são aplicadas como rotações aditivas sobre os
+ * ossos do esqueleto, por cima da locomoção do mixer.
+ */
+export type ActionPose = 'None' | 'Shoot' | 'Pass' | 'Tackle' | 'Save' | 'Celebrate' | 'RunWithBall';
+
 export interface FootballerInstance {
   object: THREE.Group;
   setGait: (state: GaitState, timeScale?: number) => void;
+  /** Aplica (ou remove com 'None') uma pose de ação com transição suave. */
+  setPose: (pose: ActionPose) => void;
   update: (dt: number) => void;
   dispose: () => void;
 }
+
+/** Rotações aditivas (radianos) por osso para cada pose de ação. */
+const ACTION_POSES: Record<ActionPose, Record<string, [number, number, number]>> = {
+  None: {},
+  // Perna direita recua e sobe, tronco inclina, braços abrem para equilíbrio.
+  Shoot: {
+    RightUpLeg: [-1.15, 0, 0],
+    RightLeg: [0.95, 0, 0],
+    LeftUpLeg: [0.35, 0, 0],
+    Spine: [-0.28, 0, 0],
+    Spine01: [-0.12, 0, 0],
+    LeftArm: [-0.85, 0, -0.25],
+    RightArm: [0.75, 0, 0.25]
+  },
+  // Passe: swing curto da perna direita com tronco ligeiramente inclinado.
+  Pass: {
+    RightUpLeg: [-0.62, 0, 0],
+    RightLeg: [0.5, 0, 0],
+    Spine: [-0.16, 0, 0],
+    LeftArm: [-0.4, 0, -0.15],
+    RightArm: [0.35, 0, 0.15]
+  },
+  // Desarme: corpo baixo, perna esticada à frente e braços recolhidos.
+  Tackle: {
+    Hips: [-0.85, 0, 0],
+    Spine: [-0.25, 0, 0],
+    LeftUpLeg: [-0.5, 0, 0],
+    RightUpLeg: [0.65, 0, 0],
+    RightLeg: [0.4, 0, 0],
+    LeftArm: [-1.25, 0, -0.3],
+    RightArm: [-1.25, 0, 0.3]
+  },
+  // Defesa do guarda-redes: corpo deitado para o lado e braços esticados.
+  Save: {
+    Hips: [0, 0, 0.75],
+    Spine: [0, 0, 0.2],
+    LeftArm: [-2.1, 0, -0.5],
+    RightArm: [-2.1, 0, 0.5],
+    LeftUpLeg: [-0.6, 0, 0],
+    RightUpLeg: [0.3, 0, 0]
+  },
+  // Festejo: braços no ar e tronco erguido.
+  Celebrate: {
+    LeftArm: [-2.6, 0, -0.4],
+    RightArm: [-2.6, 0, 0.4],
+    LeftForeArm: [-0.5, 0, 0],
+    RightForeArm: [-0.5, 0, 0],
+    Spine: [0.16, 0, 0],
+    Head: [0.22, 0, 0]
+  },
+  // Condução de bola: tronco um pouco à frente e braços em posição de corrida.
+  RunWithBall: {
+    Spine: [0.14, 0, 0],
+    LeftArm: [-0.4, 0, -0.2],
+    RightArm: [0.4, 0, 0.2]
+  }
+};
+
+const _deltaQuat = new THREE.Quaternion();
+const _euler = new THREE.Euler();
 
 const ASSET_BASE = '/assets/player';
 
@@ -285,7 +355,19 @@ export async function createFootballerInstance(
     actions.set(clip.name, action);
   }
 
+  // Mapa nome->osso para aplicar poses aditivas por cima da locomoção.
+  const bones = new Map<string, THREE.Bone>();
+  cloned.traverse((child) => {
+    if ((child as THREE.Bone).isBone) bones.set(child.name, child as THREE.Bone);
+  });
+
   let current: GaitState | null = null;
+  let pose: ActionPose = 'None';
+  let poseWeight = 0;
+  let poseTarget = 0;
+  let elapsed = 0;
+  const gaitTimeScales = new Map<string, number>();
+  const scratch = new Map<string, THREE.Quaternion>();
 
   const setGait = (state: GaitState, timeScale = 1) => {
     const clipName = state;
@@ -301,13 +383,71 @@ export async function createFootballerInstance(
       next.play();
       current = state;
     }
-    next.setEffectiveTimeScale(Math.max(0.35, Math.min(1.8, timeScale)));
+    const scale = Math.max(0.35, Math.min(1.8, timeScale));
+    next.setEffectiveTimeScale(scale);
+    gaitTimeScales.set(clipName, scale);
+  };
+
+  const setPose = (next: ActionPose) => {
+    pose = next;
+    poseTarget = next === 'None' ? 0 : 1;
+  };
+
+  const update = (dt: number) => {
+    elapsed += dt;
+
+    // Interpola o peso da pose para transições suaves entre gestos.
+    poseWeight = THREE.MathUtils.damp(poseWeight, poseTarget, 12, dt);
+
+    // Enquanto há pose de ação, a locomoção abranda (o gesto domina).
+    if (pose !== 'None') {
+      actions.forEach((action, name) => {
+        const base = gaitTimeScales.get(name) ?? 1;
+        action.setEffectiveTimeScale(base * (1 - poseWeight * 0.75));
+      });
+    }
+
+    mixer.update(dt);
+
+    if (poseWeight > 0.001 && pose !== 'None') {
+      const target = ACTION_POSES[pose];
+      const blend = poseWeight;
+      for (const [boneName, rot] of Object.entries(target)) {
+        const bone = bones.get(boneName);
+        if (!bone) continue;
+        let q = scratch.get(boneName);
+        if (!q) {
+          q = new THREE.Quaternion();
+          scratch.set(boneName, q);
+        }
+        _euler.set(rot[0] * blend, rot[1] * blend, rot[2] * blend, 'XYZ');
+        _deltaQuat.setFromEuler(_euler);
+        q.copy(bone.quaternion).premultiply(_deltaQuat);
+        bone.quaternion.copy(q);
+      }
+    } else if (poseWeight <= 0.001 && pose === 'None' && current === 'Idle') {
+      // Respiração subtil quando parado: dá vida ao modelo sem clips extra.
+      const breath = Math.sin(elapsed * 1.6) * 0.012;
+      const spine = bones.get('Spine');
+      const head = bones.get('Head');
+      if (spine) {
+        _euler.set(breath, 0, 0, 'XYZ');
+        _deltaQuat.setFromEuler(_euler);
+        spine.quaternion.premultiply(_deltaQuat);
+      }
+      if (head) {
+        _euler.set(breath * 0.6, Math.sin(elapsed * 0.7) * 0.05, 0, 'XYZ');
+        _deltaQuat.setFromEuler(_euler);
+        head.quaternion.premultiply(_deltaQuat);
+      }
+    }
   };
 
   return {
     object,
     setGait,
-    update: (dt: number) => mixer.update(dt),
+    setPose,
+    update,
     dispose: () => mixer.stopAllAction()
   };
 }

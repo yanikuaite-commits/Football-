@@ -3,18 +3,45 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { Player, Club, TeamPlayer, Difficulty, Formation, Strategy } from '../types/index.ts';
 import { DIFFICULTY_MODIFIERS } from '../utils/footballStats.ts';
 import { sounds } from '../utils/audio.ts';
-import { createFootballerInstance, FootballerInstance } from './footballerModel.ts';
+import { createFootballerInstance, FootballerInstance, ActionPose } from './footballerModel.ts';
+
+export type MomentType = 'shot' | 'pass' | 'tackle' | 'save';
+
+/** Ação escolhida pelo jogador num momento interativo (via deslize). */
+export type MomentActionType = 'shoot' | 'pass' | 'dribble' | 'tackle';
+
+export interface MomentAction {
+  type: MomentActionType;
+  /** Direção do deslize, normalizada (-1..1). Usada como mira. */
+  dir: { x: number; y: number };
+  /** Força do gesto (0..1) — comprimento do deslize. */
+  power: number;
+}
 
 export interface MatchInputState {
-  joystickVector: { x: number; y: number }; // -1 to 1
+  /** Inclinação do dispositivo / teclado: move o jogador e serve de mira (-1..1). */
+  moveVector: { x: number; y: number };
+  /** Pedido de ação do momento interativo (deslize). Consumido pelo motor. */
+  actionRequest: MomentAction | null;
   sprintHeld: boolean;
-  shootCharge: number; // 0 to 1
-  shootReleased: boolean;
-  passRequested: boolean;
-  dribbleRequested: boolean;
-  tackleRequested: boolean;
-  pressHeld: boolean;
-  switchPlayerRequested: boolean;
+}
+
+/** Informação de um momento interativo, enviada ao HUD para desenhar o overlay. */
+export interface MatchMomentInfo {
+  id: number;
+  type: MomentType;
+  title: string;
+  prompt: string;
+  /** Segundos restantes antes do momento expirar. */
+  timeLeft: number;
+  duration: number;
+  options: { gesture: string; label: string }[];
+}
+
+export interface CommentaryLine {
+  minute: number;
+  text: string;
+  isUser: boolean;
 }
 
 export interface MatchSimStats {
@@ -28,6 +55,8 @@ export interface MatchSimStats {
   playerTackles: number;
   playerRating: number;
   playerStamina: number;
+  /** Minutos jogados pelo herói (tempo simulado até entrar em campo). */
+  playerMinutes: number;
   isGameOver: boolean;
   latestEventMessage: string | null;
 }
@@ -53,6 +82,9 @@ interface Actor3D {
   arms: [THREE.Mesh, THREE.Mesh];
   head: THREE.Mesh;
   footballer?: FootballerInstance;
+  /** Tempo restante (s) de uma pose de ação procedural. */
+  poseTimer: number;
+  poseKind: ActionPose;
 }
 
 /** Configuração de equipa/dados reais injetada no motor da partida. */
@@ -122,6 +154,7 @@ export class PitchGameEngine {
     playerTackles: 0,
     playerRating: 6.8,
     playerStamina: 100,
+    playerMinutes: 0,
     isGameOver: false,
     latestEventMessage: 'Início da Partida! O árbitro apita.'
   };
@@ -132,6 +165,8 @@ export class PitchGameEngine {
   private onGoalScoredCallback: (scorerName: string, isUser: boolean) => void;
   private onMatchEndCallback: (stats: MatchSimStats) => void;
   public onStateUpdate?: (stats: MatchSimStats) => void;
+  public onMoment?: (moment: MatchMomentInfo | null) => void;
+  public onCommentary?: (line: CommentaryLine) => void;
 
   // Goal trigger cooldown
   // Força e tática das equipas (derivada dos plantéis reais)
@@ -145,9 +180,21 @@ export class PitchGameEngine {
   private _awaySquad?: TeamPlayer[];
 
   private goalCooldown: number = 0;
-  private matchTimerAccum: number = 0;
-  private cameraTargetOffset: THREE.Vector3 = new THREE.Vector3(0, 12, 18);
   private cameraLookTarget: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
+
+  // Modo simulação (estilo NSS): o jogo corre sozinho e o herói só é
+  // controlado quando a bola lhe chega — nesse instante abre um "momento".
+  public readonly SIM_MODE = true;
+  private simTimerAccum: number = 0;
+  private readonly SIM_STEP_SECONDS = 0.9; // 1 minuto de jogo a cada 0.9s real
+  private nextMomentMinute: number = 4;
+  private activeMoment: MatchMomentInfo | null = null;
+  private lastMomentTenth: number = -1;
+  private lastCommentaryMinute: number = -1;
+  private scripted: { minute: number; home: boolean } | null = null;
+  private pendingResolutionTimer: number = 0;
+  private pendingResolution: MomentType | null = null;
+  private pendingMomentActor: Actor3D | null = null;
 
   // Scratch vectors for zero GC in render loop
   private _vecA = new THREE.Vector3();
@@ -685,6 +732,8 @@ export class PitchGameEngine {
       speed: 5.0 + (this.userPlayer.overall / 99) * 3.2,
       kickCooldown: 0,
       tackleTimer: 0,
+      poseTimer: 0,
+      poseKind: 'None',
       animPhase: 0,
       legs: userVisuals.legs,
       arms: userVisuals.arms,
@@ -756,6 +805,8 @@ export class PitchGameEngine {
         speed: 4.9 + (hp.quality / 99) * 3.3,
         kickCooldown: 0,
         tackleTimer: 0,
+        poseTimer: 0,
+        poseKind: 'None',
         animPhase: Math.random() * Math.PI,
         legs: char.legs,
         arms: char.arms,
@@ -819,6 +870,8 @@ export class PitchGameEngine {
         speed: 4.9 + (ap.quality / 99) * 3.3,
         kickCooldown: 0,
         tackleTimer: 0,
+        poseTimer: 0,
+        poseKind: 'None',
         animPhase: Math.random() * Math.PI,
         legs: char.legs,
         arms: char.arms,
@@ -873,124 +926,483 @@ export class PitchGameEngine {
   /**
    * Main Physics & Match Update Step
    */
+  /**
+   * Passo principal da partida em modo simulação (estilo NSS): o jogo corre
+   * sozinho em passos de 1 minuto de jogo e só abre um momento interativo
+   * quando a bola chega ao herói.
+   */
   public update(dt: number, input: MatchInputState) {
     if (this.matchStats.isGameOver) return;
 
-    // Clamp dt to avoid tunnel physics
     const simDt = Math.min(dt, 0.05);
 
-    // Update match time (90 minutes simulated over ~3 minutes of real time)
-    this.matchTimerAccum += simDt;
-    if (this.matchTimerAccum >= 1.8) {
-      this.matchTimerAccum = 0;
-      this.matchStats.matchTimeMinutes += 1;
-      if (this.matchStats.matchTimeMinutes === 45) {
-        this.matchStats.latestEventMessage = 'Intervalo! A equipa vai ao balneário.';
-        this.onStateUpdate?.(this.matchStats);
-      }
-      if (this.matchStats.matchTimeMinutes >= 90) {
-        this.matchStats.isGameOver = true;
-        this.matchStats.latestEventMessage = 'Fim da partida! 90 minutos completados.';
-        sounds.playWhistle(true);
-        if (this.onMatchEndCallback) {
-          this.onMatchEndCallback(this.matchStats);
-        }
-      }
-      this.onStateUpdate?.(this.matchStats);
+    // Momento interativo ativo: o relógio e a IA congelam; só se lê o gesto.
+    if (this.activeMoment) {
+      this.updateControlledMovement(simDt, input.moveVector, false);
+      this.updateActors(simDt);
+      this.updateCamera(simDt);
+      this.updateActiveMoment(simDt, input);
+      return;
     }
 
-    // 1. Process Controlled Player (hero or switched teammate)
-    if (this.controlledActor) {
-      const p = this.controlledActor;
+    // 1. Movimento contínuo do jogador controlado (inclinação do dispositivo)
+    this.updateControlledMovement(simDt, input.moveVector, input.sprintHeld);
 
-      // Sprint handling with stamina cost / recovery
-      const staminaFactor = 0.55 + 0.45 * (this.stamina / 100);
-      const canSprint = input.sprintHeld && this.stamina > 4;
-      let sprintMultiplier = 1;
-      if (canSprint) {
-        sprintMultiplier = 1.35;
-        this.stamina = Math.max(0, this.stamina - 9 * simDt);
-      } else {
-        this.stamina = Math.min(100, this.stamina + 4.5 * simDt);
-      }
-      this.matchStats.playerStamina = Math.round(this.stamina);
+    // 2. Resolver animações pendentes de remate/passe (bola já em voo)
+    this.updatePendingMoment(simDt);
 
-      // Movement from joystick, throttled by current stamina
-      const jx = input.joystickVector.x;
-      const jy = input.joystickVector.y;
-      const len = Math.hypot(jx, jy);
-
-      if (len > 0.1) {
-        const targetSpeed = p.speed * sprintMultiplier * staminaFactor;
-        p.velocity.x = THREE.MathUtils.damp(p.velocity.x, (jx / len) * targetSpeed * len, 12, simDt);
-        p.velocity.z = THREE.MathUtils.damp(p.velocity.z, (jy / len) * targetSpeed * len, 12, simDt);
-        p.mesh.rotation.y = Math.atan2(jx, jy);
-      } else {
-        p.velocity.x = THREE.MathUtils.damp(p.velocity.x, 0, 14, simDt);
-        p.velocity.z = THREE.MathUtils.damp(p.velocity.z, 0, 14, simDt);
-      }
-
-      // Switch controlled player (only when the user's team does not have the ball)
-      if (input.switchPlayerRequested) {
-        input.switchPlayerRequested = false;
-        this.switchControl();
-      }
-
-      // Tackle / Slide action
-      if (input.tackleRequested && p.tackleTimer <= 0) {
-        p.tackleTimer = 0.5;
-        sounds.playTackle();
-        p.velocity.x += Math.sin(p.mesh.rotation.y) * 8;
-        p.velocity.z += Math.cos(p.mesh.rotation.y) * 8;
-        this.matchStats.playerTackles += 1;
-      }
-      if (p.tackleTimer > 0) {
-        p.tackleTimer -= simDt;
-      }
-
-      // User Shoot Action (charging handled by the HUD; aimed via joystick)
-      if (input.shootReleased && input.shootCharge > 0.05) {
-        const hasPossession = this.ballPos.distanceTo(p.position) < 1.6;
-        if (hasPossession) {
-          this.executeShot(p, input.shootCharge, input.joystickVector);
-          this.matchStats.playerShots += 1;
-          this.stamina = Math.max(0, this.stamina - 2);
-        }
-      }
-
-      // User Pass Action
-      if (input.passRequested) {
-        const hasPossession = this.ballPos.distanceTo(p.position) < 1.6;
-        if (hasPossession) {
-          this.executePass(p);
-          this.matchStats.playerPasses += 1;
-        }
-      }
-
-      // User Dribble Burst
-      if (input.dribbleRequested) {
-        const hasPossession = this.ballPos.distanceTo(p.position) < 1.6;
-        if (hasPossession) {
-          this.executeDribble(p);
-          this.stamina = Math.max(0, this.stamina - 2.5);
-        }
-      }
+    // 3. Física e IA em tempo real (congeladas durante a animação do remate,
+    //    para o resultado abstrato não ser contrariado por uma defesa visual)
+    const resolvingShot = this.pendingResolutionTimer > 0;
+    if (!resolvingShot) {
+      this.updateBallPhysics(simDt);
+      this.updateAI(simDt);
     }
-
-    // 2. Update Ball Physics
-    this.updateBallPhysics(simDt);
-
-    // 3. Update AI Actors (Teammates, Opponents, GKs)
-    this.updateAI(simDt);
-
-    // 4. Update Actor Positions & Leg Walking Animations
     this.updateActors(simDt);
-
-    // 5. Check Goal & Boundary Events
     this.checkGoalsAndBounds();
-
-    // 6. Camera Follow
     this.updateCamera(simDt);
+
+    // 4. Relógio de simulação: 1 minuto de jogo a cada ~0.9s real
+    this.simTimerAccum += simDt;
+    if (this.simTimerAccum < this.SIM_STEP_SECONDS) return;
+    this.simTimerAccum = 0;
+    this.advanceSimMinute();
+  }
+
+  /** Movimento contínuo do jogador controlado, dirigido pela inclinação. */
+  private updateControlledMovement(dt: number, move: { x: number; y: number }, sprintHeld: boolean) {
+    const p = this.controlledActor;
+    if (!p) return;
+
+    const staminaFactor = 0.55 + 0.45 * (this.stamina / 100);
+    const canSprint = sprintHeld && this.stamina > 4;
+    let sprintMultiplier = 1;
+    if (canSprint) {
+      sprintMultiplier = 1.35;
+      this.stamina = Math.max(0, this.stamina - 6 * dt);
+    } else {
+      this.stamina = Math.min(100, this.stamina + 4.5 * dt);
+    }
+    this.matchStats.playerStamina = Math.round(this.stamina);
+
+    const len = Math.hypot(move.x, move.y);
+    if (len > 0.1) {
+      const targetSpeed = p.speed * sprintMultiplier * staminaFactor;
+      p.velocity.x = THREE.MathUtils.damp(p.velocity.x, (move.x / len) * targetSpeed * Math.min(1, len), 12, dt);
+      p.velocity.z = THREE.MathUtils.damp(p.velocity.z, (move.y / len) * targetSpeed * Math.min(1, len), 12, dt);
+      p.mesh.rotation.y = Math.atan2(move.x, move.y);
+    } else {
+      p.velocity.x = THREE.MathUtils.damp(p.velocity.x, 0, 14, dt);
+      p.velocity.z = THREE.MathUtils.damp(p.velocity.z, 0, 14, dt);
+    }
+
+    if (p.tackleTimer > 0) p.tackleTimer -= dt;
+  }
+
+  /** Avança um minuto de jogo: rola eventos de simulação e decide novo momento. */
+  private advanceSimMinute() {
+    const stats = this.matchStats;
+    stats.matchTimeMinutes += 1;
+    const minute = stats.matchTimeMinutes;
+    if (minute > 1) stats.playerMinutes += 1;
+
+    // Eventos de simulação deste minuto (golos das equipas, guarda-redes, etc.)
+    this.simulateMinute(minute);
+
+    // Comentário contextual do minuto
+    this.pushMinuteCommentary(minute);
+
+    // Intervalo e fim de jogo
+    if (minute === 45) {
+      stats.latestEventMessage = 'Intervalo! A equipa vai ao balneário.';
+    }
+    if (minute >= 90) {
+      stats.isGameOver = true;
+      stats.latestEventMessage = 'Fim da partida! 90 minutos completados.';
+      sounds.playWhistle(true);
+      this.onStateUpdate?.(stats);
+      this.onMatchEndCallback(stats);
+      return;
+    }
+
+    // Decisão do próximo momento interativo do herói
+    if (minute >= this.nextMomentMinute && !this.activeMoment && !this.pendingMomentActor) {
+      const type = this.rollMomentType(minute);
+      const actor = this.userActor;
+      if (type && actor) {
+        this.openMoment(type, actor);
+        this.nextMomentMinute = minute + 5 + Math.floor(Math.random() * 6);
+      }
+    }
+
+    this.onStateUpdate?.(stats);
+  }
+
+  /** Gera golos/eventos das equipas consoante a força real de cada lado. */
+  private simulateMinute(minute: number) {
+    // Golos já agendados (garantem um resultado plausível na partida do herói)
+    if (this.scripted && this.scripted.minute === minute) {
+      const homeScores = this.scripted.home;
+      this.scripted = null;
+      if (homeScores) {
+        this.registerTeamGoal(true, `Golo do ${this.homeClub.name}!`);
+      } else {
+        this.registerTeamGoal(false, `Golo do ${this.awayClub.name}!`);
+      }
+      return;
+    }
+
+    const homeQual = this.homeQual;
+    const awayQual = this.awayQual;
+    const total = homeQual + awayQual;
+    // Base ~1.4 golos por equipa em 90 min, ajustada à diferença de força
+    const homeRate = (0.014 + 0.006 * (homeQual - awayQual) / 30) * (homeQual / total) * 2;
+    const awayRate = (0.014 + 0.006 * (awayQual - homeQual) / 30) * (awayQual / total) * 2;
+
+    const homeScored = this.goalCooldown <= 0 && Math.random() < Math.max(0.004, homeRate);
+    const awayScored = this.goalCooldown <= 0 && !homeScored && Math.random() < Math.max(0.004, awayRate);
+
+    if (homeScored) {
+      this.registerTeamGoal(true, `Golo do ${this.homeClub.name}!`);
+    } else if (awayScored) {
+      this.registerTeamGoal(false, `Golo do ${this.awayClub.name}!`);
+    }
+  }
+
+  /** Regista um golo de equipa (não do herói) e mantém os marcadores coerentes. */
+  private registerTeamGoal(home: boolean, message: string) {
+    if (home) this.matchStats.homeScore += 1;
+    else this.matchStats.awayScore += 1;
+    this.goalCooldown = 3.0;
+    this.matchStats.latestEventMessage = message;
+    this.onGoalScoredCallback(home ? this.homeClub.name : this.awayClub.name, false);
+    this.onStateUpdate?.(this.matchStats);
+  }
+
+  /** Decide se/quando há um momento para o herói, consoante o resultado. */
+  private rollMomentType(minute: number): MomentType | null {
+    const diff = this.matchStats.homeScore - this.matchStats.awayScore;
+    // Se estiver a perder, aumenta a frequência de momentos para permitir reviravolta
+    const chance = diff < 0 ? 0.95 : 0.8;
+    if (Math.random() > chance) return null;
+
+    const r = Math.random();
+    if (diff < 0 && r < 0.6) return 'shot';
+    if (r < 0.5) return 'shot';
+    if (r < 0.72) return 'pass';
+    if (r < 0.86) return 'tackle';
+    return 'save';
+  }
+
+  /** Prepara e emite o overlay do momento interativo. */
+  private openMoment(type: MomentType, actor: Actor3D) {
+    const id = this.matchStats.matchTimeMinutes;
+    const duration = type === 'save' ? 2.6 : 3.4;
+
+    // Se o golo do herói vai decidir a partida, agenda um resultado plausível
+    this.scripted = null;
+    const diff = this.matchStats.homeScore - this.matchStats.awayScore;
+    if (this.matchStats.matchTimeMinutes >= 84) {
+      const roll = Math.random();
+      if (diff <= 0) {
+        this.scripted = { minute: this.matchStats.matchTimeMinutes + 3, home: roll < 0.6 };
+      } else {
+        this.scripted = { minute: this.matchStats.matchTimeMinutes + 3, home: roll < 0.35 };
+      }
+    }
+
+    // Posiciona a bola no momento e coloca o herói perto dela
+    if (type === 'save') {
+      this.ballPos.set(-this.PITCH_L / 2 + 9, 0.6, (Math.random() - 0.5) * 5);
+      this.ballVel.set(-13, 3.2, (Math.random() - 0.5) * 4);
+      actor.position.set(-this.PITCH_L / 2 + 1.6, 0, this.ballPos.z);
+    } else if (type === 'tackle') {
+      this.ballPos.set(actor.position.x + 1.2, 0.22, actor.position.z);
+      this.ballVel.set(0, 0, 0);
+    } else if (type === 'shot') {
+      // Coloca o herói em zona de finalização com a bola controlada
+      const nearGoal = Math.abs(actor.position.x) > this.PITCH_L / 2 - 26;
+      if (!nearGoal) {
+        actor.position.set(18 + Math.random() * 6, 0, (Math.random() - 0.5) * 16);
+      }
+      this.ballPos.set(actor.position.x + 0.7, 0.22, actor.position.z);
+      this.ballVel.set(0, 0, 0);
+    } else {
+      this.ballPos.set(actor.position.x + 0.7, 0.22, actor.position.z);
+      this.ballVel.set(0, 0, 0);
+    }
+    actor.targetPos.copy(actor.position);
+    actor.velocity.set(0, 0, 0);
+    this.controlledActor = actor;
+    this.lastTouch = actor;
+    // Durante o momento a física da bola está congelada; sincroniza já a malha
+    // para a bola aparecer na posição do momento.
+    this.ballMesh.position.copy(this.ballPos);
+
+    const info: MatchMomentInfo = {
+      id,
+      type,
+      duration,
+      timeLeft: duration,
+      title: this.momentTitle(type),
+      prompt: this.momentPrompt(type),
+      options: this.momentOptions(type)
+    };
+    this.activeMoment = info;
+    this.onMoment?.(info);
+    this.onStateUpdate?.(this.matchStats);
+  }
+
+  private momentTitle(type: MomentType): string {
+    switch (type) {
+      case 'shot': return 'Chance de Golo!';
+      case 'pass': return 'Bola nos Teus Pés';
+      case 'tackle': return 'Duelo Defensivo';
+      case 'save': return 'Defesa do Guarda-Redes';
+    }
+  }
+
+  private momentPrompt(type: MomentType): string {
+    switch (type) {
+      case 'shot': return 'Inclina o telemóvel para mirar e desliza para rematar!';
+      case 'pass': return 'Desliza na direção do colega para passar.';
+      case 'tackle': return 'Desliza no momento certo para desarmar!';
+      case 'save': return 'Inclina para o lado e desliza para defender!';
+    }
+  }
+
+  private momentOptions(type: MomentType): { gesture: string; label: string }[] {
+    switch (type) {
+      case 'shot':
+        return [
+          { gesture: 'swipe-up', label: 'Rematar' },
+          { gesture: 'swipe-left', label: 'Driblar' },
+          { gesture: 'swipe-right', label: 'Passar' }
+        ];
+      case 'pass':
+        return [
+          { gesture: 'swipe', label: 'Passar' },
+          { gesture: 'swipe-up', label: 'Rematar' },
+          { gesture: 'swipe-right', label: 'Driblar' }
+        ];
+      case 'tackle':
+        return [
+          { gesture: 'swipe', label: 'Desarmar' },
+          { gesture: 'swipe-up', label: 'Pressionar' }
+        ];
+      case 'save':
+        return [{ gesture: 'swipe', label: 'Defender' }];
+    }
+  }
+
+  /** Executa a resolução do momento quando o jogador desliza. */
+  private resolveMoment(action: MomentAction) {
+    const moment = this.activeMoment;
+    const actor = this.pendingMomentActor ?? this.userActor;
+    if (!moment || !actor) return;
+    this.activeMoment = null;
+    this.pendingMomentActor = null;
+
+    const dir = action.dir;
+    const power = THREE.MathUtils.clamp(action.power, 0.15, 1);
+
+    if (moment.type === 'shot') {
+      if (action.type === 'pass') {
+        this.executePass(actor, dir);
+        this.matchStats.playerPasses += 1;
+        this.pose(actor, 'Pass');
+        this.setEvent('Bom passe! A jogada continua.');
+      } else if (action.type === 'dribble') {
+        this.executeDribble(actor);
+        this.pose(actor, 'RunWithBall');
+        this.setEvent('Drible desconcertante! Deixou o defesa para trás.');
+      } else {
+        this.matchStats.playerShots += 1;
+        this.pose(actor, 'Shoot');
+        this.executeShot(actor, 0.45 + power * 0.55, dir);
+        this.pendingResolution = 'shot';
+        this.pendingResolutionTimer = 1.4;
+      }
+    } else if (moment.type === 'pass') {
+      if (action.type === 'shoot') {
+        this.matchStats.playerShots += 1;
+        this.pose(actor, 'Shoot');
+        this.executeShot(actor, 0.4 + power * 0.6, dir);
+        this.pendingResolution = 'shot';
+        this.pendingResolutionTimer = 1.4;
+      } else if (action.type === 'dribble') {
+        this.executeDribble(actor);
+        this.pose(actor, 'RunWithBall');
+        this.setEvent('Avança com a bola colada ao pé!');
+      } else {
+        this.executePass(actor, dir);
+        this.matchStats.playerPasses += 1;
+        this.pose(actor, 'Pass');
+        this.pendingResolution = 'pass';
+        this.pendingResolutionTimer = 1.0;
+      }
+    } else if (moment.type === 'tackle') {
+      const rival = this.nearestRival(actor);
+      const qualityGap = rival ? actor.quality - rival.quality : 0;
+      const winChance = THREE.MathUtils.clamp(0.5 + qualityGap * 0.012 + power * 0.22, 0.15, 0.95);
+      if (Math.random() <= winChance) {
+        this.matchStats.playerTackles += 1;
+        this.matchStats.playerRating = Math.min(10, this.matchStats.playerRating + 0.25);
+        this.pose(actor, 'Tackle');
+        this.ballPos.copy(actor.position).add(new THREE.Vector3(1, 0, 0));
+        this.ballVel.set(0, 0, 0);
+        this.lastTouch = actor;
+        this.setEvent('Desarme limpo! Recuperaste a posse de bola.');
+      } else {
+        this.pose(actor, 'Tackle');
+        this.setEvent('O adversário passou por ti. Falta de timing!');
+      }
+    } else if (moment.type === 'save') {
+      const gk = this.actors.find((a) => a.isHomeTeam && a.isGoalkeeper);
+      const diveDir = Math.sign(dir.x) || (Math.random() < 0.5 ? -1 : 1);
+      const reach = 0.55 + power * 0.35;
+      const onTarget = Math.abs(this.ballVel.z) < 4.5;
+      if (onTarget && Math.random() < reach) {
+        this.ballVel.x = Math.abs(this.ballVel.x) * 0.6 + 6;
+        this.ballVel.z = diveDir * 8;
+        this.ballVel.y = 2.5;
+        this.pose(gk ?? actor, 'Save');
+        this.matchStats.playerRating = Math.min(10, this.matchStats.playerRating + 0.5);
+        this.setEvent('DEFESAÇA! Voaste para o canto e salvaste a equipa!');
+      } else {
+        this.setEvent('A bola passa ao lado da baliza. Que susto!');
+      }
+    }
+
+    this.onMoment?.(null);
+    this.onStateUpdate?.(this.matchStats);
+  }
+
+  /** Consome o pedido de ação vindo do HUD durante um momento ativo. */
+  private updateActiveMoment(dt: number, input: MatchInputState) {
+    const moment = this.activeMoment;
+    if (!moment) return;
+
+    if (input.actionRequest) {
+      const action = input.actionRequest;
+      input.actionRequest = null;
+      this.resolveMoment(action);
+      return;
+    }
+
+    moment.timeLeft = Math.max(0, moment.timeLeft - dt);
+    const tenth = Math.ceil(moment.timeLeft * 10);
+    if (tenth !== this.lastMomentTenth) {
+      this.lastMomentTenth = tenth;
+      this.onMoment?.({ ...moment });
+    }
+    if (moment.timeLeft <= 0) {
+      // Sem gesto: o momento expira e a defesa da IA resolve a jogada
+      this.expireMoment();
+    }
+  }
+
+  private expireMoment() {
+    const moment = this.activeMoment;
+    const actor = this.pendingMomentActor ?? this.userActor;
+    if (!moment || !actor) return;
+    this.activeMoment = null;
+    this.pendingMomentActor = null;
+
+    if (moment.type === 'shot' || moment.type === 'pass') {
+      this.setEvent('Perdeste a bola! O adversário recuperou.');
+    } else if (moment.type === 'tackle') {
+      this.setEvent('Chegaste tarde. O adversário mantém a posse.');
+    } else {
+      this.setEvent('Não conseguiste chegar à bola. Que pena!');
+    }
+    this.onMoment?.(null);
+    this.onStateUpdate?.(this.matchStats);
+  }
+
+  /** Depois de rematar/passar, decide se o golo assistido entra. */
+  private updatePendingMoment(dt: number) {
+    if (this.pendingResolutionTimer <= 0 || !this.pendingResolution) return;
+    this.pendingResolutionTimer -= dt;
+    if (this.pendingResolutionTimer > 0) return;
+
+    const type = this.pendingResolution;
+    this.pendingResolution = null;
+
+    if (type === 'shot') {
+      const shooter = this.userActor;
+      if (!shooter) return;
+      const goalChance = THREE.MathUtils.clamp(
+        0.42 + (this.userPlayer.attributes.shooting - 60) * 0.006 + this.matchStats.playerRating * 0.01,
+        0.2,
+        0.85
+      );
+      if (Math.random() < goalChance) {
+        this.matchStats.homeScore += 1;
+        this.matchStats.playerGoals += 1;
+        this.matchStats.playerRating = Math.min(10, this.matchStats.playerRating + 1.2);
+        this.matchStats.latestEventMessage = `GOLOOOOOOOO! ${this.userPlayer.kitName} marca um golaço!`;
+        this.goalCooldown = 3.0;
+        this.pose(shooter, 'Celebrate');
+        this.onGoalScoredCallback(this.userPlayer.kitName, true);
+        this.lastTouch = shooter;
+      } else {
+        this.matchStats.latestEventMessage = 'Grande defesa do guarda-redes! O remate foi travado.';
+      }
+      this.goalCooldown = 3.0;
+    } else {
+      this.matchStats.latestEventMessage = 'Passe entregue e a equipa constrói o ataque.';
+    }
+    this.onStateUpdate?.(this.matchStats);
+  }
+
+  /** Aplica uma pose de ação procedural ao jogador com duração temporária. */
+  private pose(actor: Actor3D, kind: ActionPose, seconds = 0.9) {
+    actor.poseKind = kind;
+    actor.poseTimer = seconds;
+    actor.footballer?.setPose(kind);
+  }
+
+  private nearestRival(actor: Actor3D): Actor3D | null {
+    let best: Actor3D | null = null;
+    let bestDist = Infinity;
+    this.actors.forEach((a) => {
+      if (a.isHomeTeam === actor.isHomeTeam || a.isGoalkeeper) return;
+      const d = a.position.distanceTo(actor.position);
+      if (d < bestDist) {
+        bestDist = d;
+        best = a;
+      }
+    });
+    return best;
+  }
+
+  private setEvent(message: string) {
+    this.matchStats.latestEventMessage = message;
+    this.onCommentary?.({ minute: this.matchStats.matchTimeMinutes, text: message, isUser: true });
+  }
+
+  /** Comentário automático por minuto, para o feed de texto estilo NSS. */
+  private pushMinuteCommentary(minute: number) {
+    if (minute === this.lastCommentaryMinute) return;
+    this.lastCommentaryMinute = minute;
+    const lines = [
+      'A equipa troca a bola no meio-campo com paciência.',
+      'Cruzamento cortado pela defesa adversária.',
+      'O guarda-redes sai rápido e agarra a bola.',
+      'Falta no meio-campo; o árbitro manda seguir.',
+      'Contra-ataque perigoso mas o remate sai ao lado.',
+      'A torcida canta e empurra a equipa para a frente.',
+      'Canto conquistado após bom trabalho na ala.',
+      'Defesa bem posicionada trava a investida rival.'
+    ];
+    if (Math.random() < 0.55) {
+      this.onCommentary?.({
+        minute,
+        text: lines[Math.floor(Math.random() * lines.length)],
+        isUser: false
+      });
+    }
   }
 
   private executeShot(shooter: Actor3D, powerRatio: number, aim?: { x: number; y: number }) {
@@ -1026,8 +1438,40 @@ export class PitchGameEngine {
     shooter.kickCooldown = 0.4;
   }
 
-  private executePass(passer: Actor3D) {
+  private executePass(passer: Actor3D, aim?: { x: number; y: number }) {
     sounds.playKick(0.35);
+
+    const aimLen = aim ? Math.hypot(aim.x, aim.y) : 0;
+    // Passe dirigido pelo gesto: procura o colega mais alinhado com a mira.
+    if (aim && aimLen > 0.2) {
+      const aimDir = new THREE.Vector3(aim.x / aimLen, 0, aim.y / aimLen);
+      let best: Actor3D | null = null;
+      let bestDot = -2;
+      this.actors.forEach((a) => {
+        if (a === passer || a.isHomeTeam !== passer.isHomeTeam || a.isGoalkeeper) return;
+        const to = new THREE.Vector3().subVectors(a.position, passer.position);
+        const dist = to.length();
+        if (dist < 0.5) return;
+        const dot = to.normalize().dot(aimDir);
+        const score = dot - dist * 0.01;
+        if (score > bestDot) {
+          bestDot = score;
+          best = a;
+        }
+      });
+      const targetActor = (best ?? null) as Actor3D | null;
+      const target = targetActor ? targetActor.position.clone() : passer.position.clone().add(aimDir.multiplyScalar(14));
+      if (targetActor) target.x += passer.isHomeTeam ? 2.5 : -2.5;
+      const dir = target.sub(this.ballPos).normalize();
+      const speed = 15 + (passer.quality / 99) * 7;
+      this.ballVel.x = dir.x * speed;
+      this.ballVel.y = 0.8;
+      this.ballVel.z = dir.z * speed;
+      this.ballHolder = null;
+      this.lastTouch = passer;
+      passer.kickCooldown = 0.35;
+      return;
+    }
 
     // Find closest teammate forward
     let bestTeammate: Actor3D | null = null;
@@ -1082,6 +1526,16 @@ export class PitchGameEngine {
   }
 
   private updateBallPhysics(dt: number) {
+    // Em modo simulação, mantém a bola "viva" no relvado com empurrões suaves,
+    // já que a posse real é resolvida pelos momentos interativos.
+    if (this.SIM_MODE && !this.activeMoment) {
+      const sp = Math.hypot(this.ballVel.x, this.ballVel.z);
+      if (sp < 0.4 && Math.random() < 0.02) {
+        this.ballVel.x += (Math.random() - 0.5) * 2.6;
+        this.ballVel.z += (Math.random() - 0.5) * 2.6;
+      }
+    }
+
     // Gravity
     this.ballVel.y -= 18 * dt;
 
@@ -1189,8 +1643,8 @@ export class PitchGameEngine {
           actor.targetPos.z = actor.baseZ;
         }
 
-        // AI Ball touch / kick
-        if (distToBall < 1.4 && actor.kickCooldown <= 0) {
+        // AI Ball touch / kick (desativado em modo simulação: os golos vêm do relógio)
+        if (!this.SIM_MODE && distToBall < 1.4 && actor.kickCooldown <= 0) {
           // O jogador mais próximo ganha a bola com luta física contra o adversário
           const scan = { rival: null as Actor3D | null, rivalDist: 1e9 };
           this.actors.forEach((o) => {
@@ -1287,6 +1741,14 @@ export class PitchGameEngine {
       // Locomoção: modelo real com as animações Walking/Running do jogo de origem
       const speed = Math.hypot(actor.velocity.x, actor.velocity.z);
       if (actor.footballer) {
+        // Uma pose de ação ativa interrompe temporariamente a locomoção.
+        if (actor.poseTimer > 0) {
+          actor.poseTimer -= dt;
+          if (actor.poseTimer <= 0) {
+            actor.poseKind = 'None';
+            actor.footballer.setPose('None');
+          }
+        }
         if (speed > 3.4) {
           actor.footballer.setGait('Running', THREE.MathUtils.clamp(speed / 5.6, 0.85, 1.6));
         } else if (speed > 0.25) {
@@ -1310,8 +1772,9 @@ export class PitchGameEngine {
       }
 
       // Ball dribbling touch: if player is right at ball, stick lightly
+      // (desativado em modo simulação: a posse é gerida pelos momentos)
       const dToBall = actor.position.distanceTo(this.ballPos);
-      if (dToBall < 1.1 && this.ballPos.y < 0.8 && actor.kickCooldown <= 0) {
+      if (!this.SIM_MODE && dToBall < 1.1 && this.ballPos.y < 0.8 && actor.kickCooldown <= 0) {
         // Gentle nudge forward in facing direction
         const fwdX = Math.sin(actor.mesh.rotation.y);
         const fwdZ = Math.cos(actor.mesh.rotation.y);
@@ -1331,6 +1794,18 @@ export class PitchGameEngine {
   }
 
   private checkGoalsAndBounds() {
+    // Em modo simulação os golos vêm do relógio/momentos; aqui só se mantém a
+    // bola dentro do campo para dar vida ao relvado sem duplicar marcadores.
+    if (this.SIM_MODE) {
+      if (Math.abs(this.ballPos.z) > this.PITCH_W / 2 + 1 || Math.abs(this.ballPos.x) > this.PITCH_L / 2 + 4) {
+        this.ballPos.z = THREE.MathUtils.clamp(this.ballPos.z, -this.PITCH_W / 2 + 2, this.PITCH_W / 2 - 2);
+        this.ballPos.x = THREE.MathUtils.clamp(this.ballPos.x, -this.PITCH_L / 2 + 6, this.PITCH_L / 2 - 6);
+        this.ballPos.y = 0.22;
+        this.ballVel.set(0, 0, 0);
+      }
+      return;
+    }
+
     if (this.goalCooldown > 0) {
       this.goalCooldown -= 0.016;
       return;

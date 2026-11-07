@@ -193,6 +193,7 @@ export interface MatchSimStats {
   playerTackles: number;
   playerRating: number;
   playerStamina: number;
+  playerMinutes: number;
   isGameOver: boolean;
   latestEventMessage: string | null;
 }
